@@ -1,30 +1,39 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export const generateImageDescription = async (imagePath) => {
     try {
         if (!imagePath) return null;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        // Build path: imagePath is expected to be like "/uploads/xxx.png"
-        // Since we are in /utils/, we need to go up two levels to reach the root uploads folder
-        const cleanPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
-        const fullPath = path.join(__dirname, "..", cleanPath);
+        let base64Image;
+        let mimeType = "image/jpeg";
 
-        if (!fs.existsSync(fullPath)) {
-            console.error("Image file not found for description:", fullPath);
-            return "Image reference provided but file not found on server.";
+        if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+            // ☁️ Cloudinary URL — fetch via HTTP
+            const response = await fetch(imagePath);
+            if (!response.ok) {
+                console.error("Failed to fetch image from URL:", imagePath);
+                return "Image reference provided but could not be fetched.";
+            }
+            const contentType = response.headers.get("content-type") || "image/jpeg";
+            mimeType = contentType.split(";")[0];
+            const arrayBuffer = await response.arrayBuffer();
+            base64Image = Buffer.from(arrayBuffer).toString("base64");
+        } else {
+            // Legacy: local file path (fallback, should not hit in production)
+            const { default: fs } = await import("fs");
+            const { default: path } = await import("path");
+            const { fileURLToPath } = await import("url");
+            const __dirname = path.dirname(fileURLToPath(import.meta.url));
+            const cleanPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+            const fullPath = path.join(__dirname, "..", cleanPath);
+            if (!fs.existsSync(fullPath)) {
+                return "Image reference provided but file not found on server.";
+            }
+            base64Image = fs.readFileSync(fullPath).toString("base64");
         }
-
-        const imageBuffer = fs.readFileSync(fullPath);
-        const base64Image = imageBuffer.toString("base64");
 
         const prompt = `
 You are an accessibility assistant for a visually impaired student taking an exam.
@@ -44,7 +53,7 @@ Keep the explanation factual and neutral.
             {
                 inlineData: {
                     data: base64Image,
-                    mimeType: "image/jpeg"
+                    mimeType
                 }
             },
             prompt

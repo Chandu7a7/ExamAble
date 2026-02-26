@@ -492,10 +492,7 @@ const ExamPage = () => {
                       <div className="mb-6">
                         <div className="flex justify-center mb-4">
                           <img
-                            src={questions[currentQuestionIdx].image.startsWith('http')
-                              ? questions[currentQuestionIdx].image
-                              : `${API_BASE}${questions[currentQuestionIdx].image}`
-                            }
+                            src={questions[currentQuestionIdx].image}
                             alt={questions[currentQuestionIdx].accessibilityText || "Visual reference for the question"}
                             className="max-h-72 w-auto rounded-3xl border-8 border-slate-100 dark:border-slate-800/50 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.2)] object-contain bg-white transition-all hover:scale-[1.02]"
                           />

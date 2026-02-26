@@ -11,12 +11,10 @@ import questionRoutes from "./routes/questionRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import violationRoutes from "./routes/violationRoutes.js";
 import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
+import { v2 as cloudinary } from "cloudinary";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { requireRole } from "./middleware/roleMiddleware.js";
-import fs from "fs";
 
 dotenv.config();
 connectDB();
@@ -47,50 +45,50 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Static folder for uploads
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-app.use("/uploads", express.static(uploadDir));
-
-// Multer Storage Configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`);
-  },
+// ☁️ Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Multer — memory storage (no disk, buffer goes straight to Cloudinary)
 const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|webp/;
-    const mimetypes = /image\/jpeg|image\/jpg|image\/png|image\/webp/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = mimetypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-      return cb(null, true);
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|jpg|png|webp)$/.test(file.mimetype)) {
+      cb(null, true);
     } else {
       cb(new Error("Images only! (jpeg, jpg, png, webp)"));
     }
   },
 });
 
-app.post("/api/upload", protect, requireRole("admin"), upload.single("image"), (req, res) => {
+// Helper: upload buffer to Cloudinary and return secure URL
+const uploadToCloudinary = (buffer, mimetype) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "vi-exam-portal", resource_type: "image" },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(buffer);
+  });
+
+app.post("/api/upload", protect, requireRole("admin"), upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
-  res.json({
-    message: "Image uploaded successfully",
-    url: `/uploads/${req.file.filename}`
-  });
+  try {
+    const url = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+    res.json({ message: "Image uploaded successfully", url });
+  } catch (err) {
+    console.error("Cloudinary upload error:", err);
+    res.status(500).json({ message: "Image upload to Cloudinary failed" });
+  }
 });
 
 app.get("/", (req, res) => {

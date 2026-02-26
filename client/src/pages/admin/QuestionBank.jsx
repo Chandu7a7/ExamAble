@@ -439,7 +439,7 @@ const QuestionBank = () => {
                                                     <div className="flex flex-col items-center gap-2">
                                                         <div className="w-full h-24 rounded-lg overflow-hidden border border-emerald-100">
                                                             <img
-                                                                src={`${API_BASE}${newQuestion.image}`}
+                                                                src={newQuestion.image}
                                                                 alt="Upload preview"
                                                                 className="w-full h-full object-cover"
                                                             />
