@@ -110,3 +110,7 @@ npm run dev
 
 ## 🤝 Designing for Accessibility
 This app was built with a strict "Visual Context First" protocol. Every update adheres strictly to WCAG principles, making sure the UI logic explicitly prioritizes reading alt-text and descriptors *before* reading the question text to provide students with the foundational context needed to succeed.
+
+
+
+Team @Alpha7
