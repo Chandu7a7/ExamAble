@@ -1,4 +1,4 @@
-import API_BASE from "../../../api.js";
+import API_BASE from "../../api.js";
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar.jsx";
 import { toast, Toaster } from "react-hot-toast";

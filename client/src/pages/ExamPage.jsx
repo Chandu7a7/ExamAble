@@ -1,4 +1,4 @@
-import API_BASE from "../../api.js";
+import API_BASE from "../api.js";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useTabSwitchDetection from "../hooks/useTabSwitchDetection.js";
