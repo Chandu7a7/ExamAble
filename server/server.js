@@ -24,16 +24,20 @@ connectDB();
 const app = express();
 
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  process.env.CLIENT_ORIGIN,          // Set this to your Vercel URL in Render dashboard
   "http://localhost:5173",
   "http://localhost:4173",
-  "https://examable.onrender.com",   // deployed server origin (for health checks etc.)
+  "https://examable.onrender.com",
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. curl, Postman) or matching origins
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow no-origin (Postman, curl) or whitelisted origins or any vercel.app subdomain
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/.*\.vercel\.app$/.test(origin)
+    ) {
       callback(null, true);
     } else {
       callback(new Error(`CORS blocked: ${origin}`));
