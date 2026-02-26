@@ -20,7 +20,7 @@ const useTabSwitchDetection = ({ examId, studentId, onAutoSubmit }) => {
 
   const logViolation = async (type) => {
     try {
-      await fetch("/api/violations", {
+      await fetch("http://localhost:5000/api/violations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

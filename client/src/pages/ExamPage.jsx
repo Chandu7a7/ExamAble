@@ -7,12 +7,20 @@ const ExamPage = () => {
   const [searchParams] = useSearchParams();
   const examId = searchParams.get("id");
   const dialogRef = useRef(null);
+  const lastCommandTime = useRef(0);
+  const isSpeakingRef = useRef(false);
+  const isAssistantActiveRef = useRef(true);
+  const isRecognitionRunning = useRef(false);
+  const recognitionRef = useRef(null);       // stable recognition instance
+  const commandHandlerRef = useRef(null);    // always-fresh command handler
 
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [markedForReview, setMarkedForReview] = useState({});
   const [isAssistantActive, setIsAssistantActive] = useState(true);
+  // Keep a ref in sync so event handlers always see the latest value
+  useEffect(() => { isAssistantActiveRef.current = isAssistantActive; }, [isAssistantActive]);
   const [assistantStatus, setAssistantStatus] = useState("Initializing...");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -51,8 +59,14 @@ const ExamPage = () => {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      isSpeakingRef.current = true;
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      isSpeakingRef.current = false;
+    };
     window.speechSynthesis.speak(utterance);
   }, []);
 
@@ -117,16 +131,12 @@ const ExamPage = () => {
 
 
   const handleNext = useCallback(() => {
-    if (currentQuestionIdx < questions.length - 1) {
-      setCurrentQuestionIdx((prev) => prev + 1);
-    }
-  }, [currentQuestionIdx, questions.length]);
+    setCurrentQuestionIdx((prev) => (prev < questions.length - 1 ? prev + 1 : prev));
+  }, [questions.length]);
 
   const handlePrevious = useCallback(() => {
-    if (currentQuestionIdx > 0) {
-      setCurrentQuestionIdx((prev) => prev - 1);
-    }
-  }, [currentQuestionIdx]);
+    setCurrentQuestionIdx((prev) => (prev > 0 ? prev - 1 : prev));
+  }, []);
 
   const handleOptionSelect = useCallback((optionIdx) => {
     setSelectedAnswers((prev) => ({
@@ -148,7 +158,6 @@ const ExamPage = () => {
     }));
   }, [currentQuestionIdx]);
 
-  // �📢 Read question when it changes
   // 🔊 Read question when it changes
   useEffect(() => {
     if (!isAssistantActive || loading || questions.length === 0) return;
@@ -172,41 +181,16 @@ const ExamPage = () => {
     speak(text);
   }, [currentQuestionIdx, speak, isAssistantActive, loading, questions]);
 
-  // 🎤 Voice Recognition
+  // 🎤 Always keep the command handler ref up-to-date (no stale closures)
   useEffect(() => {
-    if (!isAssistantActive || isSpeaking) return;
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = "en-US";
-
-    recognition.onstart = () => setAssistantStatus("Listening...");
-    recognition.onend = () => {
-      if (isAssistantActive && !isSpeaking) {
-        try {
-          recognition.start();
-        } catch (e) {
-          console.log("Recognition restart suppressed:", e);
-        }
-      }
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-      console.log("Voice Command Recognized:", transcript);
-
-      // Improved matching with multiple variations
-      if (/\b(option 1|option one|select 1|select one|choose 1|choose one|number 1|number one|answer 1|answer one|1|one)\b/.test(transcript)) {
+    commandHandlerRef.current = (transcript) => {
+      if (/\b(option 1|option one|select 1|select one|choose 1|choose one|number 1|number one|answer 1|answer one)\b/.test(transcript)) {
         handleVoiceSelect(0);
-      } else if (/\b(option 2|option two|select 2|select two|choose 2|choose two|number 2|number two|answer 2|answer two|2|two)\b/.test(transcript)) {
+      } else if (/\b(option 2|option two|select 2|select two|choose 2|choose two|number 2|number two|answer 2|answer two)\b/.test(transcript)) {
         handleVoiceSelect(1);
-      } else if (/\b(option 3|option three|select 3|select three|choose 3|choose three|number 3|number three|answer 3|answer three|3|three)\b/.test(transcript)) {
+      } else if (/\b(option 3|option three|select 3|select three|choose 3|choose three|number 3|number three|answer 3|answer three)\b/.test(transcript)) {
         handleVoiceSelect(2);
-      } else if (/\b(option 4|option four|select 4|select four|choose 4|choose four|number 4|number four|answer 4|answer four|4|four)\b/.test(transcript)) {
+      } else if (/\b(option 4|option four|select 4|select four|choose 4|choose four|number 4|number four|answer 4|answer four)\b/.test(transcript)) {
         handleVoiceSelect(3);
       } else if (/\b(next|move forward|skip)\b/.test(transcript)) {
         handleNext();
@@ -216,31 +200,100 @@ const ExamPage = () => {
         handleSubmit();
       } else if (/\b(read|repeat|read question|repeat question|describe again|describe image)\b/.test(transcript)) {
         const q = questions[currentQuestionIdx];
-        const imageDesc = q.image ? `ACCESSIBILITY ALERT. This question includes a visual asset. Description: ${q.accessibilityText || "No detailed description provided."}. ` : "";
-        const textToSpeech = `${imageDesc} Question Number ${currentQuestionIdx + 1}. ${q.text}. Option 1: ${q.options?.[0] || ""}. Option 2: ${q.options?.[1] || ""}. Option 3: ${q.options?.[2] || ""}. Option 4: ${q.options?.[3] || ""}.`;
-        speak(textToSpeech);
+        if (!q) return false;
+        const imageDesc = q.image
+          ? `ACCESSIBILITY ALERT. This question includes a visual asset. Description: ${q.accessibilityText || "No detailed description provided."}. `
+          : "";
+        speak(`${imageDesc} Question Number ${currentQuestionIdx + 1}. ${q.text}. Option 1: ${q.options?.[0] || ""}. Option 2: ${q.options?.[1] || ""}. Option 3: ${q.options?.[2] || ""}. Option 4: ${q.options?.[3] || ""}.`);
+      } else {
+        return false; // not matched
+      }
+      return true; // matched
+    };
+  }, [handleVoiceSelect, handleNext, handlePrevious, handleSubmit, questions, currentQuestionIdx, speak]);
+
+  // 🎤 Voice Recognition — single stable instance, never torn down on state change
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false; // Only process FINAL results — prevents phantom matches
+    recognition.lang = "en-US";
+    recognitionRef.current = recognition;
+
+    const tryStart = () => {
+      if (!isRecognitionRunning.current) {
+        try {
+          recognition.start();
+        } catch (_) { /* suppress if already running */ }
+      }
+    };
+
+    recognition.onstart = () => {
+      isRecognitionRunning.current = true;
+      setAssistantStatus("Listening...");
+    };
+
+    recognition.onend = () => {
+      isRecognitionRunning.current = false;
+      // Auto-restart unless assistant was paused
+      if (isAssistantActiveRef.current) {
+        setTimeout(tryStart, 300);
+      }
+    };
+
+    recognition.onresult = (event) => {
+      // Ignore if assistant is paused or a command was just fired
+      if (!isAssistantActiveRef.current) return;
+      if (Date.now() - lastCommandTime.current < 1500) return;
+
+      const result = event.results[event.results.length - 1];
+      if (!result.isFinal) return; // extra safety for any browser that sends interim
+
+      const transcript = result[0].transcript.toLowerCase().trim();
+      console.log("[Voice] heard:", transcript);
+
+      if (commandHandlerRef.current) {
+        const matched = commandHandlerRef.current(transcript);
+        if (matched) {
+          lastCommandTime.current = Date.now();
+          console.log("[Voice] Command matched:", transcript);
+        }
       }
     };
 
     recognition.onerror = (e) => {
-      console.error("Speech Recognition Error:", e);
-      setAssistantStatus("Error occurred. Restarting...");
-      if (e.error !== 'no-speech') {
-        setTimeout(() => isAssistantActive && !isSpeaking && recognition.start(), 1000);
-      }
+      isRecognitionRunning.current = false;
+      if (e.error === "no-speech") return; // benign, onend will fire and restart
+      console.warn("[Voice] Recognition error:", e.error);
+      setAssistantStatus("Listening (recovering)...");
+      setTimeout(tryStart, 1000);
     };
 
-    try {
-      recognition.start();
-    } catch (e) {
-      console.error("Recognition start failed:", e);
-    }
+    tryStart();
 
     return () => {
       recognition.onend = null;
-      recognition.stop();
+      recognition.onerror = null;
+      recognition.onresult = null;
+      isRecognitionRunning.current = false;
+      try { recognition.stop(); } catch (_) { }
+      recognitionRef.current = null;
     };
-  }, [isAssistantActive, isSpeaking, currentQuestionIdx, speak, handleVoiceSelect, handleNext, handlePrevious, handleSubmit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← empty deps: ONE instance for entire component lifetime
+
+  // Pause/resume recognition when isAssistantActive changes
+  useEffect(() => {
+    if (!recognitionRef.current) return;
+    if (!isAssistantActive) {
+      try { recognitionRef.current.stop(); } catch (_) { }
+    } else if (!isRecognitionRunning.current) {
+      try { recognitionRef.current.start(); } catch (_) { }
+    }
+  }, [isAssistantActive]);
 
 
   useEffect(() => {
@@ -463,7 +516,7 @@ const ExamPage = () => {
                       </div >
                     )}
                     <div className="grid grid-cols-1 gap-2.5">
-                      {questions[currentQuestionIdx].options.map((option, idx) => {
+                      {questions[currentQuestionIdx]?.options?.map((option, idx) => {
                         const isSelected = selectedAnswers[currentQuestionIdx] === idx;
                         return (
                           <button

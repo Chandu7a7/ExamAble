@@ -9,6 +9,7 @@ import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import questionRoutes from "./routes/questionRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import violationRoutes from "./routes/violationRoutes.js";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -22,7 +23,23 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  "http://localhost:5173",
+  "http://localhost:4173",
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. curl, Postman) or matching origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 const __filename = fileURLToPath(import.meta.url);
@@ -82,6 +99,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/violations", violationRoutes);
 
 app.use(errorHandler);
 

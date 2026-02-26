@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: vi-exam-portal-server
+    runtime: node
+    region: singapore          # closest to India
+    plan: free
+    rootDir: server            # Render will cd into server/ before running commands
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000            # Render assigns its own port via $PORT, but set a default
+      - key: MONGO_URI
+        sync: false             # You will paste this in the Render dashboard
+      - key: JWT_SECRET
+        sync: false             # You will paste this in the Render dashboard
+      - key: GEMINI_API_KEY
+        sync: false             # You will paste this in the Render dashboard
+      - key: CLIENT_ORIGIN
+        sync: false             # Set to your frontend URL after deploying client
