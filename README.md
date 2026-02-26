@@ -1,116 +1,358 @@
-# VI-Exam Portal (Visually Impaired Exam Portal)
+<div align="center">
 
-An accessible, voice-integrated, and highly secure online examination system designed specifically for visually impaired (VI) students. The platform leverages modern web technologies, AI-powered image descriptions, and the Web Speech API to provide an equitable and independent testing environment.
+# 🎓 ExamAble
 
-## 🌟 Key Features
+### *Accessible Examination Portal for Visually Impaired Students*
 
-### 🎧 Inclusive & Voice-First Student Experience
-- **Voice Assistant Integration**: Automatically reads out questions, options, and critical alerts using `window.speechSynthesis`.
-- **Dynamic Exam Timer**: Fetches the duration directly from the backend to initialize the countdown. Automatically announces total time and remaining questions at calculated dynamic intervals.
-- **Auto-Submission**: Includes voice warnings at the 1-minute mark and auto-submits the exam when the timer hits zero.
-- **Accessibility Alerts**: Gives a prominent "ACCESSIBILITY ALERT" and deep text transcription whenever an image-based question appears.
-- **Voice Navigation**: Students can select options by speaking "Option 1", "Two", "Next", "Previous", "Submit", or "Repeat Question".
-- **Keyboard Shortcuts**: Full keyboard navigability (1-4 for options, N for Next, P for Previous, R for Repeat, S for Submit, M for Mark for Review).
+<br/>
 
-### 🛡️ Secure Proctoring & Mechanics
-- **Tab Switch Detection**: Monitors away-time to prevent unauthorized browsing during the exam (using visibility API).
-- **Immersive Fullscreen Penalty**: Forces the student to take the exam in fullscreen. If they exit, warnings are issued.
-- **Safe Zone Restorations**: Navigating back from the submit confirmation page automatically requests fullscreen mode again.
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-examable.vercel.app-6366f1?style=for-the-badge&logoColor=white)](https://examable.vercel.app)
+[![Backend](https://img.shields.io/badge/Backend-examable.onrender.com-10b981?style=for-the-badge)](https://examable.onrender.com)
+[![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
+[![Hackathon](https://img.shields.io/badge/Symbiosis_Hackathon-2026-ec4899?style=for-the-badge)](https://github.com/Chandu7a7/ExamAble)
 
-### 🧠 AI-Powered Admin & Question Bank
-- **Visual Asset Uploads**: Admins can seamlessly add images to questions.
-- **Automated Accessibility Generation**: Uses the **Google Gemini 1.5 Flash API** to auto-generate objective, pedagogically neutral text descriptions for uploaded images, ensuring clinical-grade accessibility without revealing answers.
-- **Strict Validation**: The database strictly requires an `accessibilityText` whenever an image is provided.
-- **Question Composition**: Multi-functional question bank allowing divergence choices (MCQ) or custom inputs.
+<br/>
+
+> **ExamAble** is a voice-first, AI-powered, and fully accessible online examination system built for visually impaired (VI) students. It combines the Web Speech API, Google Gemini AI, and an inclusive UI to provide a truly independent and equitable testing experience.
+
+<br/>
+
+<img src="https://res.cloudinary.com/demo/image/upload/v1/placeholder.png" alt="ExamAble Banner" width="0"/>
+
+[![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite_5-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=flat-square&logo=cloudinary&logoColor=white)](https://cloudinary.com)
+[![Gemini AI](https://img.shields.io/badge/Gemini_AI-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
+[![Vercel](https://img.shields.io/badge/Vercel-000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com)
+[![Render](https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=white)](https://render.com)
+
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [🏗️ Architecture](#️-architecture)
+- [💻 Tech Stack](#-tech-stack)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Environment Variables](#️-environment-variables)
+- [📁 Project Structure](#-project-structure)
+- [🎤 Voice Commands](#-voice-commands)
+- [🌐 Deployment](#-deployment)
+- [👥 Team](#-team)
+
+---
+
+## ✨ Features
+
+### 🎧 Voice-First Student Experience
+- **🔊 Auto-Narration** — Questions, options, and alerts are automatically read aloud using the Web Speech API
+- **🎤 Voice Commands** — Navigate and answer entirely by voice: *"Option Two"*, *"Next"*, *"Previous"*, *"Submit"*, *"Repeat Question"*
+- **⏱️ Smart Timer Announcements** — Dynamic audio alerts at calculated intervals and a final 1-minute warning
+- **🖼️ Image Accessibility** — Every visual question has an AI-generated audio description so students know *what* the image shows without getting hints
+
+### 🛡️ Proctoring & Security
+- **👁️ Tab Switch Detection** — Logs and penalizes any tab switching or window blur during the exam
+- **📺 Fullscreen Enforcement** — Exam runs in mandatory fullscreen; exiting triggers warnings
+- **⏰ Auto-Submit** — Timer expiry automatically submits the exam, preventing incomplete sessions
+- **🔒 JWT Auth** — Role-based access control with secure token authentication (student / admin)
+
+### 🧠 AI-Powered Admin Tools
+- **📸 Cloudinary Image Upload** — Production-safe image storage; URLs stored directly in MongoDB
+- **🤖 Gemini AI Description** — One-click AI generation of neutral, pedagogically safe accessibility text for images
+- **📝 Question Bank** — Full CRUD for questions with subject, difficulty, options, and image support
+- **📊 Exam Builder** — Create timed exams from the question bank with dynamic configuration
+- **📈 Analytics Dashboard** — Real-time stats on users, exams, and results
+
+### ♿ Accessibility-First Design
+- **WCAG 2.1 AAA** compliant design principles throughout
+- **Keyboard Navigation** — Every action is reachable without a mouse
+- **ARIA Live Regions** — Screen-reader compatible announcements for every state change
+- **High Contrast** — Dark mode and high-contrast toggle support
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLIENT (Vercel)                         │
+│                    React 18 + Vite + TailwindCSS                │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐ │
+│  │   ExamPage   │  │  AdminPanel  │  │  Dashboard / Results  │ │
+│  │ + Voice API  │  │ + QuestionBank│  │  + Analytics         │ │
+│  └──────┬───────┘  └──────┬───────┘  └──────────────────────┘ │
+└─────────┼─────────────────┼───────────────────────────────────┘
+          │  HTTPS + JSON   │
+          ▼                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       SERVER (Render)                           │
+│                    Node.js + Express.js                         │
+│                                                                 │
+│  /api/auth   /api/exams   /api/questions   /api/results        │
+│  /api/upload /api/ai      /api/violations  /api/admin          │
+│                                                                 │
+│  ┌──────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
+│  │  Multer  │  │  Gemini AI   │  │  JWT + Role Middleware    │ │
+│  │ (memory) │  │  (describe)  │  │  protect + requireRole   │ │
+│  └────┬─────┘  └──────────────┘  └──────────────────────────┘ │
+└───────┼─────────────────────────────────────────────────────────┘
+        │
+        ├──────────────────────────────────┐
+        ▼                                  ▼
+┌───────────────┐                ┌─────────────────┐
+│  MongoDB Atlas│                │   Cloudinary    │
+│  (data store) │                │ (image storage) │
+└───────────────┘                └─────────────────┘
+```
+
+---
 
 ## 💻 Tech Stack
 
-- **Frontend**: React (Vite), Tailwind CSS, React Router, Web Speech API (SpeechRecognition & SpeechSynthesis).
-- **Backend**: Node.js, Express.js.
-- **Database**: MongoDB (Mongoose ORM).
-- **Storage**: Multer for local image processing.
-- **AI Integration**: `@google/generative-ai` (Gemini API).
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 18, Vite 5, TailwindCSS, React Router v6 |
+| **HTTP Client** | Native `fetch` API |
+| **Voice** | Web Speech API (`SpeechRecognition` + `SpeechSynthesis`) |
+| **Backend** | Node.js, Express.js (ESM modules) |
+| **Database** | MongoDB Atlas (Mongoose ODM) |
+| **Auth** | JSON Web Tokens (JWT) |
+| **Image Storage** | Cloudinary (upload via stream, permanent CDN URLs) |
+| **AI** | Google Gemini 1.5 Flash (`@google/generative-ai`) |
+| **File Handling** | Multer (memory storage → Cloudinary) |
+| **Frontend Hosting** | Vercel |
+| **Backend Hosting** | Render |
 
-## � Folder Structure
-
-```text
-vi-exam-portal/
-├── client/                 # Frontend React application (Vite)
-│   ├── public/             
-│   ├── src/                
-│   │   ├── components/     # Reusable UI components (e.g., AdminSidebar, ProtectedRoute)
-│   │   ├── hooks/          # Custom React hooks (e.g., useTabSwitchDetection)
-│   │   ├── pages/          # Main application pages
-│   │   │   ├── admin/      # Admin interfaces (CreateExam, QuestionBank, etc.)
-│   │   │   ├── ExamPage.jsx
-│   │   │   ├── ConfirmSubmit.jsx
-│   │   │   └── ...
-│   │   ├── App.jsx         # Main routing and layout wrapper
-│   │   └── main.jsx        # React DOM rendering entry point
-│   ├── package.json        
-│   └── tailwind.config.js  
-├── server/                 # Backend Node.js/Express application
-│   ├── config/             # Configuration files (e.g., Database connection)
-│   ├── controllers/        # Core business logic handlers (aiController, examController, etc.)
-│   ├── middleware/         # Express middleware (authMiddleware, roleMiddleware, errorMiddleware)
-│   ├── models/             # Mongoose database schemas (Exam, Question, User)
-│   ├── routes/             # API endpoint definitions
-│   ├── uploads/            # Local storage directory for visual assets
-│   ├── utils/              # Helper utilities (e.g., aiUtils.js for Gemini integration)
-│   ├── server.js           # Main Express server entry point
-│   ├── debug_models.js     # Standalone scripts for debugging
-│   └── package.json        
-└── README.md               # Project documentation
-```
+---
 
 ## 🚀 Quick Start
-### 1. Prerequisites
-- Node.js (v16+)
-- MongoDB connection string
-- Google Gemini API Key
 
-### 2. Environment Variables
+### Prerequisites
+- Node.js **v18+**
+- MongoDB Atlas account (free tier works)
+- Google [Gemini API Key](https://ai.google.dev)
+- [Cloudinary](https://cloudinary.com) account (free tier works)
 
-Create a `.env` file in the `server` directory with the following variables:
-```env
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret_key
-GEMINI_API_KEY=your_gemini_api_key
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/Chandu7a7/ExamAble.git
+cd ExamAble
 ```
 
-### 3. Installation
+### 2. Setup the Backend
 
-**Setup Backend:**
 ```bash
 cd server
 npm install
-npm run dev
 ```
 
-**Setup Frontend:**
+Create `server/.env` (see [Environment Variables](#️-environment-variables)):
+
+```bash
+cp .env.example .env
+# Then fill in your actual values
+```
+
+```bash
+npm run dev     # Starts on http://localhost:5000
+```
+
+### 3. Setup the Frontend
+
 ```bash
 cd client
 npm install
-npm run dev
 ```
 
-## 🛠️ Usage Flows
+Create `client/.env`:
+```env
+VITE_API_URL=http://localhost:5000
+```
 
-**Admin Capabilities:**
-1. Navigate to `/admin/dashboard` to manage the system.
-2. Go to **Question Bank** to create questions. If you upload an image, click **AI Suggest** to auto-generate accessibility text.
-3. Construct exams from the question bank. Define the time duration and total points dynamically.
+```bash
+npm run dev     # Starts on http://localhost:5173
+```
 
-**Student Capabilities:**
-1. Access the exam link.
-2. Grant microphone permissions for voice commands.
-3. The Voice Assistant will begin reading. Navigate using Voice, Keyboard Shortcuts, or Mouse/Touch.
-4. Auto-submit logic handles transitions smoothly upon completion of the timer.
+---
 
-## 🤝 Designing for Accessibility
-This app was built with a strict "Visual Context First" protocol. Every update adheres strictly to WCAG principles, making sure the UI logic explicitly prioritizes reading alt-text and descriptors *before* reading the question text to provide students with the foundational context needed to succeed.
+## ⚙️ Environment Variables
 
+### `server/.env`
 
+```env
+# Database
+MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/examable
 
-Team @Alpha7
+# Auth
+JWT_SECRET=use_a_long_random_secure_string_here
+
+# Server
+PORT=5000
+
+# Google Gemini AI
+GEMINI_API_KEY=your_gemini_api_key
+
+# Cloudinary (image storage)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+# Frontend URL (for CORS — set to your Vercel URL in production)
+CLIENT_ORIGIN=http://localhost:5173
+```
+
+### `client/.env`
+
+```env
+# Points to your backend (Render URL in production)
+VITE_API_URL=https://examable.onrender.com
+```
+
+---
+
+## 📁 Project Structure
+
+```
+ExamAble/
+├── client/                         # React frontend (Vite)
+│   ├── public/
+│   ├── src/
+│   │   ├── api.js                  # 🔑 Central API base URL config
+│   │   ├── components/
+│   │   │   ├── admin/
+│   │   │   │   └── AdminSidebar.jsx
+│   │   │   └── ProtectedRoute.jsx
+│   │   ├── hooks/
+│   │   │   ├── useTabSwitchDetection.js
+│   │   │   ├── useVoiceCommands.js
+│   │   │   ├── useSpeechSynthesis.js
+│   │   │   └── useKeyboardShortcuts.js
+│   │   └── pages/
+│   │       ├── admin/
+│   │       │   ├── AdminDashboard.jsx
+│   │       │   ├── Analytics.jsx
+│   │       │   ├── CreateExam.jsx
+│   │       │   ├── ManageExams.jsx
+│   │       │   └── QuestionBank.jsx
+│   │       ├── ExamPage.jsx        # 🎯 Core exam interface + voice
+│   │       ├── ExamInstructions.jsx
+│   │       ├── ConfirmSubmit.jsx
+│   │       ├── Result.jsx
+│   │       ├── StudentDashboard.jsx
+│   │       ├── Login.jsx
+│   │       ├── Register.jsx
+│   │       ├── Profile.jsx
+│   │       └── Landing.jsx
+│   ├── .env
+│   ├── vercel.json                 # SPA routing config for Vercel
+│   └── package.json
+│
+├── server/                         # Express backend
+│   ├── config/
+│   │   └── db.js                   # MongoDB connection
+│   ├── controllers/
+│   │   ├── aiController.js
+│   │   ├── authController.js
+│   │   ├── examController.js
+│   │   ├── questionController.js
+│   │   └── resultController.js
+│   ├── middleware/
+│   │   ├── authMiddleware.js       # JWT verification
+│   │   ├── roleMiddleware.js       # Admin/student gates
+│   │   └── errorMiddleware.js
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Exam.js
+│   │   ├── Question.js
+│   │   └── Result.js
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── examRoutes.js
+│   │   ├── questionRoutes.js
+│   │   ├── resultRoutes.js
+│   │   ├── adminRoutes.js
+│   │   ├── aiRoutes.js
+│   │   └── violationRoutes.js
+│   ├── utils/
+│   │   └── aiUtils.js              # Gemini image description
+│   ├── .env
+│   ├── .env.example
+│   └── server.js                  # Main Express entry point
+│
+├── render.yaml                    # Render deployment blueprint
+└── README.md
+```
+
+---
+
+## 🎤 Voice Commands
+
+Students can control the entire exam by voice:
+
+| Command | Action |
+|---|---|
+| `"Option One"` / `"One"` | Select option A |
+| `"Option Two"` / `"Two"` | Select option B |
+| `"Option Three"` / `"Three"` | Select option C |
+| `"Option Four"` / `"Four"` | Select option D |
+| `"Next"` / `"Next Question"` | Go to next question |
+| `"Previous"` / `"Back"` | Go to previous question |
+| `"Repeat"` / `"Read"` / `"Again"` | Re-read current question |
+| `"Submit"` / `"Finish"` | Initiate exam submission |
+| `"Mark"` | Flag question for review |
+
+> 💡 Voice assistant automatically reads each question when navigated to — no commands needed to start listening.
+
+---
+
+## 🌐 Deployment
+
+| Service | Platform | URL |
+|---|---|---|
+| **Frontend** | Vercel | [examable.vercel.app](https://examable.vercel.app) |
+| **Backend** | Render | [examable.onrender.com](https://examable.onrender.com) |
+| **Database** | MongoDB Atlas | — |
+| **Images** | Cloudinary CDN | `res.cloudinary.com/...` |
+
+### Deploy Your Own
+
+**Backend → Render:**
+1. Connect GitHub repo → New Web Service
+2. Root Directory: `server` | Build: `npm install` | Start: `npm start`
+3. Add all env variables from `server/.env.example`
+
+**Frontend → Vercel:**
+1. Connect GitHub repo → New Project
+2. Root Directory: `client` | Framework: Vite
+3. Add env variable: `VITE_API_URL=https://your-render-url.onrender.com`
+
+---
+
+## 👥 Team
+
+<div align="center">
+
+Built with ❤️ by **Team Alpha7** at Symbiosis Hackathon 2026
+
+| Role | Name |
+|---|---|
+| Full Stack Developer | [@Chandu7a7](https://github.com/Chandu7a7) |
+
+</div>
+
+---
+
+<div align="center">
+
+**ExamAble** — *Because every student deserves an equal opportunity to succeed.*
+
+⭐ Star this repo if you found it useful!
+
+</div>
