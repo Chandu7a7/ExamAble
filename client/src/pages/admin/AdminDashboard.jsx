@@ -1,3 +1,4 @@
+import API_BASE from "../../../api.js";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar.jsx";
@@ -31,7 +32,7 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/admin/stats", {
+      const response = await fetch(`${API_BASE}/api/admin/stats`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }

@@ -1,3 +1,4 @@
+import API_BASE from "../../api.js";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useTabSwitchDetection from "../hooks/useTabSwitchDetection.js";
@@ -38,7 +39,7 @@ const ExamPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/exams/${examId}`, {
+      const response = await fetch(`${API_BASE}/api/exams/${examId}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
@@ -493,7 +494,7 @@ const ExamPage = () => {
                           <img
                             src={questions[currentQuestionIdx].image.startsWith('http')
                               ? questions[currentQuestionIdx].image
-                              : `http://localhost:5000${questions[currentQuestionIdx].image}`
+                              : `${API_BASE}${questions[currentQuestionIdx].image}`
                             }
                             alt={questions[currentQuestionIdx].accessibilityText || "Visual reference for the question"}
                             className="max-h-72 w-auto rounded-3xl border-8 border-slate-100 dark:border-slate-800/50 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.2)] object-contain bg-white transition-all hover:scale-[1.02]"

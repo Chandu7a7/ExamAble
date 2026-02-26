@@ -1,3 +1,4 @@
+import API_BASE from "../../../api.js";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar.jsx";
@@ -18,7 +19,7 @@ const ManageExams = () => {
   const fetchExams = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/exams", {
+      const response = await fetch(`${API_BASE}/api/exams`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -37,7 +38,7 @@ const ManageExams = () => {
     if (!window.confirm("Are you sure you want to delete this exam?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/exams/${id}`, {
+      const response = await fetch(`${API_BASE}/api/exams/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

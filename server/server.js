@@ -27,6 +27,7 @@ const allowedOrigins = [
   process.env.CLIENT_ORIGIN || "http://localhost:5173",
   "http://localhost:5173",
   "http://localhost:4173",
+  "https://examable.onrender.com",   // deployed server origin (for health checks etc.)
 ];
 
 app.use(cors({

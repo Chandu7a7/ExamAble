@@ -1,3 +1,4 @@
+import API_BASE from "../../api.js";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -26,7 +27,7 @@ const ConfirmSubmit = () => {
         selectedOption: val
       }));
 
-      const response = await fetch("http://localhost:5000/api/results", {
+      const response = await fetch(`${API_BASE}/api/results`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

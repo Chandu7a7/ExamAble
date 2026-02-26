@@ -1,3 +1,4 @@
+import API_BASE from "../../api.js";
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -19,14 +20,14 @@ const Result = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/results/${resultId}`, {
+      const response = await fetch(`${API_BASE}/api/results/${resultId}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
       if (response.ok) {
         setResult(data);
         // Fetch exam details to get total questions and title if not populated
-        const examResponse = await fetch(`http://localhost:5000/api/exams/${data.examId?._id || data.examId}`, {
+        const examResponse = await fetch(`${API_BASE}/api/exams/${data.examId?._id || data.examId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const examData = await examResponse.json();

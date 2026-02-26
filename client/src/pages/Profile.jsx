@@ -1,3 +1,4 @@
+import API_BASE from "../../api.js";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -18,7 +19,7 @@ const Profile = () => {
 
       try {
         // Fetch User Profile
-        const userRes = await fetch("http://localhost:5000/api/users/me", {
+        const userRes = await fetch(`${API_BASE}/api/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (userRes.ok) {
@@ -34,7 +35,7 @@ const Profile = () => {
         }
 
         // Fetch Results
-        const resultsRes = await fetch("http://localhost:5000/api/results/me", {
+        const resultsRes = await fetch(`${API_BASE}/api/results/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (resultsRes.ok) {

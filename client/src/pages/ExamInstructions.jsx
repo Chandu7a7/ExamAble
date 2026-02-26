@@ -1,3 +1,4 @@
+import API_BASE from "../../api.js";
 import React, { useCallback, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -18,7 +19,7 @@ const ExamInstructions = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/exams/${examId}`, {
+      const response = await fetch(`${API_BASE}/api/exams/${examId}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();

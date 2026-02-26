@@ -1,3 +1,4 @@
+import API_BASE from "../../api.js";
 import { useEffect, useState } from "react";
 
 /**
@@ -20,7 +21,7 @@ const useTabSwitchDetection = ({ examId, studentId, onAutoSubmit }) => {
 
   const logViolation = async (type) => {
     try {
-      await fetch("http://localhost:5000/api/violations", {
+      await fetch(`${API_BASE}/api/violations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

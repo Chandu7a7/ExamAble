@@ -1,3 +1,4 @@
+import API_BASE from "../../../api.js";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar.jsx";
@@ -28,7 +29,7 @@ const CreateExam = () => {
     try {
       setSelectorLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/questions", {
+      const response = await fetch(`${API_BASE}/api/questions`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
@@ -67,7 +68,7 @@ const CreateExam = () => {
         }))
       };
 
-      const response = await fetch("http://localhost:5000/api/exams", {
+      const response = await fetch(`${API_BASE}/api/exams`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

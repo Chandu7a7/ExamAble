@@ -1,3 +1,4 @@
+import API_BASE from "../../../api.js";
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar.jsx";
 import { toast, Toaster } from "react-hot-toast";
@@ -32,7 +33,7 @@ const QuestionBank = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:5000/api/questions", {
+            const response = await fetch(`${API_BASE}/api/questions`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -61,7 +62,7 @@ const QuestionBank = () => {
         try {
             setUploading(true);
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:5000/api/upload", {
+            const response = await fetch(`${API_BASE}/api/upload`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -93,7 +94,7 @@ const QuestionBank = () => {
         try {
             setAiSuggesting(true);
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:5000/api/ai/describe", {
+            const response = await fetch(`${API_BASE}/api/ai/describe`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -142,8 +143,8 @@ const QuestionBank = () => {
             setSaving(true);
             const token = localStorage.getItem("token");
             const url = editMode
-                ? `http://localhost:5000/api/questions/${editId}`
-                : "http://localhost:5000/api/questions";
+                ? `${API_BASE}/api/questions/${editId}`
+                : `${API_BASE}/api/questions`;
 
             const method = editMode ? "PUT" : "POST";
 
@@ -188,7 +189,7 @@ const QuestionBank = () => {
 
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:5000/api/questions/${id}`, {
+            const response = await fetch(`${API_BASE}/api/questions/${id}`, {
                 method: "DELETE",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -438,7 +439,7 @@ const QuestionBank = () => {
                                                     <div className="flex flex-col items-center gap-2">
                                                         <div className="w-full h-24 rounded-lg overflow-hidden border border-emerald-100">
                                                             <img
-                                                                src={`http://localhost:5000${newQuestion.image}`}
+                                                                src={`${API_BASE}${newQuestion.image}`}
                                                                 alt="Upload preview"
                                                                 className="w-full h-full object-cover"
                                                             />
