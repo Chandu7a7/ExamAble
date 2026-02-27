@@ -20,7 +20,7 @@
 ## 🎥 Project Demo
 
 [![Watch Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)]
-(https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+(https://youtu.be/rLYxjUhDhVU?si=twnfufV17ZM1oTvb)
 
 
 [![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev)
