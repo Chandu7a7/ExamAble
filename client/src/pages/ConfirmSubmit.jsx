@@ -113,11 +113,24 @@ const ConfirmSubmit = () => {
     recognitionRef.current = recognition;
 
     const startRecognition = () => {
-      if (cleanedUpRef.current || isRunningRef.current) return;
+      // NOTE: no cleanedUpRef guard here — Strict Mode sets it before speech ends
+      if (isRunningRef.current) {
+        console.log("[ConfirmVoice] startRecognition skipped: already running");
+        return;
+      }
       try {
         recognition.start();
         isRunningRef.current = true;
-      } catch (_) { }
+        console.log("[ConfirmVoice] ✅ mic started");
+      } catch (e) {
+        console.warn("[ConfirmVoice] rec.start() error:", e.message);
+        // retry
+        setTimeout(() => {
+          if (!isRunningRef.current) {
+            try { recognition.start(); isRunningRef.current = true; console.log("[ConfirmVoice] ✅ mic started (retry)"); } catch (_) { }
+          }
+        }, 600);
+      }
     };
 
     recognition.onresult = (event) => {
@@ -126,16 +139,19 @@ const ConfirmSubmit = () => {
         .map((r) => r[0].transcript.trim().toLowerCase())
         .join(" ");
 
+      console.log("[ConfirmVoice] heard:", JSON.stringify(raw), "| loading:", loadingRef.current);
       if (!raw || loadingRef.current) return;
       setTranscript(raw);
       setVoiceStatus("heard");
 
       if (SUBMIT_REGEX.test(raw)) {
+        console.log("[ConfirmVoice] ✅ SUBMIT command matched");
         handleFinalSubmit();
       } else if (GOBACK_REGEX.test(raw)) {
+        console.log("[ConfirmVoice] ✅ GOBACK command matched");
         goBackToExam();
       } else {
-        // unknown command — reset
+        console.log("[ConfirmVoice] ❓ unknown command, resetting");
         setTimeout(() => {
           setTranscript("");
           setVoiceStatus("listening");
@@ -144,24 +160,44 @@ const ConfirmSubmit = () => {
     };
 
     recognition.onerror = (e) => {
+      console.warn("[ConfirmVoice] onerror:", e.error);
       if (e.error === "not-allowed" || e.error === "service-not-allowed") return;
       isRunningRef.current = false;
     };
 
     recognition.onend = () => {
+      console.log("[ConfirmVoice] mic ended, restart?", { cleanedUp: cleanedUpRef.current, loading: loadingRef.current });
       isRunningRef.current = false;
       if (!cleanedUpRef.current && !loadingRef.current) {
         setTimeout(startRecognition, 300);
       }
     };
 
-    /* Intro speech → then start mic */
-    speak(
-      "You have reached the end of your exam. Say confirm submission to submit, or say go back to exam to review your answers.",
-      () => { startRecognition(); }
-    );
+    /* Intro speech → start mic after speech ends (+ fallback timer) */
+    const introText = "You have reached the end of your exam. Say confirm submission to submit, or say go back to exam to review your answers.";
+    const estimatedMs = Math.ceil((introText.length / 13) * 1000) + 1200;
+    console.log("[ConfirmVoice] intro speech estimated:", estimatedMs, "ms");
+
+    let micStarted = false;
+    const startOnce = () => {
+      if (micStarted) return; // ← no cleanedUpRef check (Strict Mode fix)
+      micStarted = true;
+      clearTimeout(fallback);
+      console.log("[ConfirmVoice] → startRecognition()");
+      startRecognition();
+    };
+
+    const utter = new SpeechSynthesisUtterance(introText);
+    utter.rate = 0.95; utter.lang = "en-US";
+    utter.onend = () => { console.log("[ConfirmVoice] speech onend"); startOnce(); };
+    utter.onerror = (e) => { console.warn("[ConfirmVoice] speech error:", e.error); startOnce(); };
+    const fallback = setTimeout(() => { console.log("[ConfirmVoice] fallback timer"); startOnce(); }, estimatedMs);
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
 
     return () => {
+      clearTimeout(fallback);
       cleanedUpRef.current = true;
       window.speechSynthesis.cancel();
       recognition.onresult = null;
@@ -229,10 +265,10 @@ const ConfirmSubmit = () => {
                 <div
                   key={i}
                   className={`w-1 rounded-full transition-all duration-300 ${status.barColor} ${voiceStatus === "listening"
-                      ? "animate-bounce"
-                      : voiceStatus === "heard"
-                        ? "animate-pulse"
-                        : ""
+                    ? "animate-bounce"
+                    : voiceStatus === "heard"
+                      ? "animate-pulse"
+                      : ""
                     }`}
                   style={{
                     height: voiceStatus === "listening"

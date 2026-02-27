@@ -1,91 +1,104 @@
 import API_BASE from "../api.js";
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-
-/* ─── Speech helpers ──────────────────────────────────────────────────────── */
-const speak = (text, onEnd) => {
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.95;
-  utter.pitch = 1;
-  utter.lang = "en-US";
-  if (onEnd) utter.onend = onEnd;
-  window.speechSynthesis.speak(utter);
-};
 
 const ExamInstructions = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const examId = searchParams.get("id");
+
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [voiceStatus, setVoiceStatus] = useState("loading"); // loading | ready | speaking | heard
+  const [voiceStatus, setVoiceStatus] = useState("loading");
   const [heardText, setHeardText] = useState("");
 
-  const recognitionRef = useRef(null);
-  const isRunningRef = useRef(false);
-  const cleanedUpRef = useRef(false);
-  const hasSpokeRef = useRef(false);
-  const handleStartExamRef = useRef(null); // always-fresh ref to avoid stale closure
+  /* ── refs (never stale inside recognition callbacks) ─────────────────── */
+  const examIdRef = useRef(examId);
+  const navigateRef = useRef(navigate);
+  const goToExamRef = useRef(null);   // ← keeps goToExam fresh inside rec.onresult
+  const recRef = useRef(null);
+  const isRunning = useRef(false);
+  const cleanedUp = useRef(false);
+  const hasSpoken = useRef(false);
 
-  /* ── exam fetch ─────────────────────────────────────────────────────────── */
+  // keep refs fresh every render
+  examIdRef.current = examId;
+  navigateRef.current = navigate;
+
+
+  /* ── fetch exam ──────────────────────────────────────────────────────── */
   useEffect(() => {
-    if (examId) fetchExamDetails();
+    if (!examId) return;
+    (async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/api/exams/${examId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) setExam(data);
+      } catch (e) {
+        console.error("Exam fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [examId]);
 
-  const fetchExamDetails = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE}/api/exams/${examId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (response.ok) setExam(data);
-    } catch (err) {
-      console.error("Error fetching exam details:", err);
-    } finally {
-      setLoading(false);
+  /* ── goToExam (also stored in ref for use inside recognition callbacks) ── */
+  const goToExam = () => {
+    cleanedUp.current = true;
+    window.speechSynthesis.cancel();
+    if (recRef.current) {
+      try { recRef.current.abort?.(); recRef.current.stop(); } catch (_) { }
+      recRef.current = null;
     }
+    const el = document.documentElement;
+    try { (el.requestFullscreen || el.webkitRequestFullscreen || (() => { })).call(el); } catch (_) { }
+    navigateRef.current(`/exam?id=${examIdRef.current}`);
+  };
+  goToExamRef.current = goToExam; // always fresh
+
+  /* ── speak helper ────────────────────────────────────────────────────── */
+  const speak = (text) => {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95; u.lang = "en-US";
+    window.speechSynthesis.speak(u);
   };
 
-  /* ── build welcome message ──────────────────────────────────────────────── */
-  const buildWelcomeMessage = useCallback((examData) => {
-    const title = examData?.title || "General Exam";
-    const duration = examData?.duration || 0;
-    const qCount = examData?.questions?.length || 0;
-    return `Welcome to ${title}. Total time is ${duration} minutes. Total questions are ${qCount}. Press Enter or say Start Exam to begin. Say Repeat Instructions to hear this again.`;
-  }, []);
+  const buildMsg = (e) =>
+    `Welcome to ${e?.title || "General Exam"}. ` +
+    `Total time is ${e?.duration || 0} minutes. ` +
+    `Total questions are ${e?.questions?.length || 0}. ` +
+    `Press Enter or say Start Exam to begin.`;
 
-  /* ── speak welcome when exam data arrives ───────────────────────────────── */
+  /* ── voice + speech: fires once when exam data arrives ───────────────── */
   useEffect(() => {
-    if (!exam || loading || hasSpokeRef.current) return;
-    hasSpokeRef.current = true;
+    if (!exam || loading || hasSpoken.current) return;
+    hasSpoken.current = true;
+
+    const msg = buildMsg(exam);
+    const estimatedMs = Math.ceil((msg.length / 13) * 1000) + 1200;
+    console.log(`[Voice] estimated speech: ${estimatedMs}ms`);
     setVoiceStatus("speaking");
-    speak(buildWelcomeMessage(exam), () => {
-      if (!cleanedUpRef.current) {
-        setVoiceStatus("ready");
-        startRecognition();
-      }
-    });
-  }, [exam, loading]); // eslint-disable-line
 
-  /* ── voice recognition ──────────────────────────────────────────────────── */
-  // safeStart defined at module scope of the effect so onend can reference it
-  const startRecognition = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR || cleanedUpRef.current) return;
 
-    const safeStart = () => {
-      if (cleanedUpRef.current || isRunningRef.current) return;
-      try {
-        recognitionRef.current.start();
-        isRunningRef.current = true;
-      } catch (_) { }
-    };
+    // Creates a brand-new rec instance and starts it
+    // (Never reuses an old instance — avoids InvalidStateError)
+    const startMic = () => {
+      if (!SR) return; // only guard: SR not available
 
-    if (!recognitionRef.current) {
+      // destroy old instance first
+      if (recRef.current) {
+        try { recRef.current.onresult = null; recRef.current.onend = null; recRef.current.onerror = null; recRef.current.stop(); } catch (_) { }
+        recRef.current = null;
+      }
+
       const rec = new SR();
+      recRef.current = rec;
       rec.lang = "en-US";
       rec.continuous = true;
       rec.interimResults = false;
@@ -93,85 +106,93 @@ const ExamInstructions = () => {
       rec.onresult = (event) => {
         const raw = Array.from(event.results)
           .slice(event.resultIndex)
-          .map((r) => r[0].transcript.trim().toLowerCase())
+          .map(r => r[0].transcript.trim().toLowerCase())
           .join(" ");
+        console.log("[Voice-Instructions] heard:", JSON.stringify(raw));
         if (!raw) return;
-
-        console.log("[Voice] heard:", raw); // debug log
         setHeardText(raw);
         setVoiceStatus("heard");
-
-        if (/start exam|start|begin exam|begin/i.test(raw)) {
-          // ✅ use ref — always has the latest handleStartExam
-          speak("Starting your exam now. Good luck!", () => {
-            handleStartExamRef.current?.();
-          });
-        } else if (/repeat|repeat instructions|again|instructions/i.test(raw)) {
-          speak(buildWelcomeMessage(exam));
-          setTimeout(() => { setVoiceStatus("ready"); setHeardText(""); }, 1500);
+        if (/start|begin/i.test(raw)) {
+          goToExamRef.current?.(); // ← ref, always fresh
+        } else if (/repeat|again/i.test(raw)) {
+          window.speechSynthesis.cancel();
+          const u2 = new SpeechSynthesisUtterance(msg);
+          u2.rate = 0.95; u2.lang = "en-US";
+          window.speechSynthesis.speak(u2);
+          setTimeout(() => { setVoiceStatus("ready"); setHeardText(""); }, 2000);
         } else {
           setTimeout(() => { setVoiceStatus("ready"); setHeardText(""); }, 1500);
         }
       };
 
       rec.onerror = (e) => {
-        if (e.error === "not-allowed" || e.error === "service-not-allowed") return;
-        isRunningRef.current = false;
+        console.warn("[Voice] onerror:", e.error);
       };
 
       rec.onend = () => {
-        isRunningRef.current = false;
-        if (!cleanedUpRef.current) setTimeout(safeStart, 300);
+        console.log("[Voice] mic ended, restarting...");
+        if (!cleanedUp.current) setTimeout(startMic, 500);
       };
 
-      recognitionRef.current = rec;
-    }
+      try {
+        rec.start();
+        setVoiceStatus("ready");
+        console.log("[Voice] ✅ mic started fresh");
+      } catch (e) {
+        console.error("[Voice] ❌ rec.start() threw:", e.message);
+        if (!cleanedUp.current) setTimeout(startMic, 800);
+      }
+    };
 
-    safeStart();
-  }, [exam, buildWelcomeMessage]); // eslint-disable-line
+    // Speak welcome → start mic AFTER speech ends
+    let micStarted = false;
+    const startOnce = () => {
+      if (micStarted) return; // only guard: already started once
+      micStarted = true;
+      clearTimeout(fallbackTimer);
+      console.log("[Voice] → startMic()");
+      startMic();
+    };
 
-  /* ── cleanup ────────────────────────────────────────────────────────────── */
+    const utter = new SpeechSynthesisUtterance(msg);
+    utter.rate = 0.95;
+    utter.lang = "en-US";
+    utter.onend = () => { console.log("[Voice] utterance onend → startOnce"); startOnce(); };
+    utter.onerror = (e) => { console.warn("[Voice] utterance error:", e.error); startOnce(); };
+
+    const fallbackTimer = setTimeout(() => {
+      console.log("[Voice] fallback timer → startOnce");
+      startOnce();
+    }, estimatedMs);
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [exam, loading]); // eslint-disable-line
+
+  /* ── global cleanup on unmount ───────────────────────────────────────── */
   useEffect(() => {
     return () => {
-      cleanedUpRef.current = true;
+      cleanedUp.current = true;
       window.speechSynthesis.cancel();
-      if (recognitionRef.current && isRunningRef.current) {
-        try { recognitionRef.current.stop(); } catch (_) { }
+      if (recRef.current && isRunning.current) {
+        try { recRef.current.stop(); } catch (_) { }
       }
     };
   }, []);
 
-  /* ── keyboard shortcuts ─────────────────────────────────────────────────── */
+  /* ── keyboard shortcuts ──────────────────────────────────────────────── */
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Enter") handleStartExam();
-      if (e.key === "r" || e.key === "R") {
-        if (exam) speak(buildWelcomeMessage(exam));
-      }
+      if (e.key === "Enter") { e.preventDefault(); goToExam(); }
+      if ((e.key === "r" || e.key === "R") && exam) speak(buildMsg(exam));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [exam, buildWelcomeMessage]); // eslint-disable-line
+  }, [exam]); // eslint-disable-line
 
-  /* ── fullscreen + navigation ────────────────────────────────────────────── */
-  const enterFullscreen = useCallback(() => {
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) elem.requestFullscreen();
-    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-    else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
-  }, []);
-
-  const handleStartExam = useCallback(() => {
-    window.speechSynthesis.cancel();
-    enterFullscreen();
-    navigate(`/exam?id=${examId}`);
-  }, [enterFullscreen, navigate, examId]);
-
-  // ✅ keep ref always pointing to the latest handleStartExam
-  // (this is what voice recognition uses to avoid stale closure)
-  handleStartExamRef.current = handleStartExam;
-
-  /* ── voice status config ─────────────────────────────────────────────────── */
+  /* ── status display ──────────────────────────────────────────────────── */
   const statusCfg = {
     loading: { label: "Loading exam details...", icon: "hourglass_top", color: "text-slate-400" },
     speaking: { label: "Reading instructions aloud...", icon: "volume_up", color: "text-primary" },
@@ -224,16 +245,17 @@ const ExamInstructions = () => {
               <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                 <span className="material-symbols-outlined text-sm font-black">person</span>
               </div>
-              <span className="text-sm font-black text-slate-700 dark:text-slate-300 hidden sm:inline uppercase tracking-widest">User 402</span>
+              <span className="text-sm font-black text-slate-700 dark:text-slate-300 hidden sm:inline uppercase tracking-widest">Profile</span>
             </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto w-full px-6 flex-grow py-12 relative z-10">
+        {/* Voice status banner */}
         <div className="mb-10">
           <div
-            className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 rounded-[2rem] border-2 border-primary bg-primary/5 backdrop-blur-xl shadow-2xl shadow-primary/10 group"
+            className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 rounded-[2rem] border-2 border-primary bg-primary/5 backdrop-blur-xl shadow-2xl shadow-primary/10"
             role="alert"
           >
             <div className="flex items-center gap-6">
@@ -249,7 +271,7 @@ const ExamInstructions = () => {
               </div>
             </div>
             <button
-              onClick={() => exam && speak(buildWelcomeMessage(exam))}
+              onClick={() => exam && speak(buildMsg(exam))}
               className="h-14 px-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary font-black rounded-xl hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center gap-2 group/btn"
               type="button"
             >
@@ -296,7 +318,7 @@ const ExamInstructions = () => {
               <div className="mt-12 p-8 rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                 <h4 className="text-xl font-black mb-6 flex items-center gap-3 text-slate-900 dark:text-white">
                   <span className="material-symbols-outlined text-primary font-black">notifications_active</span>
-                  Telemetry & Persistence
+                  Telemetry &amp; Persistence
                 </h4>
                 <div className="space-y-6">
                   <div className="flex gap-4 group">
@@ -351,7 +373,7 @@ const ExamInstructions = () => {
                   Isolation mode will be engaged. All telemetry will be actively logged.
                 </p>
                 <button
-                  onClick={handleStartExam}
+                  onClick={goToExam}
                   className="w-full h-20 bg-white text-primary font-black text-xl rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4 group"
                   type="button"
                 >
@@ -367,7 +389,6 @@ const ExamInstructions = () => {
                 </div>
               </div>
 
-              {/* Abstract Shapes */}
               <div className="absolute -right-10 -bottom-10 h-40 w-40 bg-white/10 rounded-full blur-2xl" />
               <div className="absolute -left-10 -top-10 h-32 w-32 bg-blue-400/20 rounded-full blur-2xl" />
             </div>
@@ -407,5 +428,3 @@ const ExamInstructions = () => {
 };
 
 export default ExamInstructions;
-
-
