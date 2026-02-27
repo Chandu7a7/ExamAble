@@ -19,8 +19,11 @@
 
 ## 🎥 Project Demo
 
-[![Watch Demo](https://i.ytimg.com/vi/rLYxjUhDhVU/hqdefault.jpg?sqp=-oaymwFBCNACELwBSFryq4qpAzMIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB8AEB-AG-BoAC0AOKAgwIABABGF0gWChlMA8=&rs=AOn4CLBd9CYzIz-9frEoxZChGvsOnCYWNQ)]
-(https://youtu.be/rLYxjUhDhVU?si=twnfufV17ZM1oTvb)
+<p align="center">
+  <a href="https://youtu.be/rLYxjUhDhVU">
+    <img src="https://img.youtube.com/vi/rLYxjUhDhVU/maxresdefault.jpg" width="700"/>
+  </a>
+</p>
 
 
 [![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev)
