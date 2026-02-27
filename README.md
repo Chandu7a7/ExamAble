@@ -17,7 +17,10 @@
 
 <br/>
 
-<img src="https://res.cloudinary.com/demo/image/upload/v1/placeholder.png" alt="ExamAble Banner" width="0"/>
+## 🎥 Project Demo
+
+<video src="VID-20260227-WA0002 (1).mp4" controls width="600"></video>
+
 
 [![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite_5-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
