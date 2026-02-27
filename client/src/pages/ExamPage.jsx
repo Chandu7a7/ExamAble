@@ -310,7 +310,7 @@ const ExamPage = () => {
         toggleMarkForReview();
       } else if (key === "r") {
         const q = questions[currentQuestionIdx];
-        const imageDesc = q.image ? `ACCESSIBILITY ALERT. This question includes a visual asset. Description: ${q.accessibilityText || "No detailed description provided."}. ` : "";
+        const imageDesc = q.image ? `This question includes an image. I will now describe it for you. Description: ${q.accessibilityText || "No detailed description provided."}. ` : "";
         const textToSpeech = `${imageDesc} Question Number ${currentQuestionIdx + 1}. ${q.text}. Option 1: ${q.options?.[0] || ""}. Option 2: ${q.options?.[1] || ""}. Option 3: ${q.options?.[2] || ""}. Option 4: ${q.options?.[3] || ""}.`;
         speak(textToSpeech);
       } else if (key === "s") {
