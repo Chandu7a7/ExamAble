@@ -19,7 +19,7 @@
 
 ## 🎥 Project Demo
 
-[![Watch Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)]
+[![Watch Demo](https://i.ytimg.com/vi/rLYxjUhDhVU/hqdefault.jpg?sqp=-oaymwFBCNACELwBSFryq4qpAzMIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB8AEB-AG-BoAC0AOKAgwIABABGF0gWChlMA8=&rs=AOn4CLBd9CYzIz-9frEoxZChGvsOnCYWNQ)]
 (https://youtu.be/rLYxjUhDhVU?si=twnfufV17ZM1oTvb)
 
 
