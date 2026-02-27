@@ -166,7 +166,7 @@ const ExamPage = () => {
     const q = questions[currentQuestionIdx];
     if (!q) return;
 
-    const imageDesc = q.image ? `ACCESSIBILITY ALERT. This question includes a visual asset. Description: ${q.accessibilityText || "No detailed description provided."}. ` : "";
+    const imageDesc = q.image ? `This question includes an image. I will now describe it for you Description: ${q.accessibilityText || "No detailed description provided."}. ` : "";
 
     const text = `
       ${imageDesc}
