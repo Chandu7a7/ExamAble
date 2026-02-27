@@ -21,7 +21,7 @@
 
 <p align="center">
   <a href="https://youtu.be/rLYxjUhDhVU?si=f9czdrBbZ3zGdwc7">
-    <img src="https://chatgpt.com/backend-api/estuary/content?id=file_00000000c47c71fab0df0ee8a6772e2f&ts=492265&p=fs&cid=1&sig=e1f7c95f526cb338444f156417c7dcf43438295ab6ea86522006d54235f1321b&v=0" width="700"/>
+    <img src="https://i.ytimg.com/vi/rLYxjUhDhVU/hqdefault.jpg?sqp=-oaymwFBCNACELwBSFryq4qpAzMIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB8AEB-AG-BoAC0AOKAgwIABABGF0gWChlMA8=&rs=AOn4CLBd9CYzIz-9frEoxZChGvsOnCYWNQ" width="700"/>
   </a>
 </p>
 
