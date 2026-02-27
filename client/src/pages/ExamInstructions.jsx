@@ -25,7 +25,8 @@ const ExamInstructions = () => {
   const recognitionRef = useRef(null);
   const isRunningRef = useRef(false);
   const cleanedUpRef = useRef(false);
-  const hasSpokeRef = useRef(false); // ensure welcome only fires once
+  const hasSpokeRef = useRef(false);
+  const handleStartExamRef = useRef(null); // always-fresh ref to avoid stale closure
 
   /* ── exam fetch ─────────────────────────────────────────────────────────── */
   useEffect(() => {
@@ -70,9 +71,18 @@ const ExamInstructions = () => {
   }, [exam, loading]); // eslint-disable-line
 
   /* ── voice recognition ──────────────────────────────────────────────────── */
+  // safeStart defined at module scope of the effect so onend can reference it
   const startRecognition = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR || cleanedUpRef.current || isRunningRef.current) return;
+    if (!SR || cleanedUpRef.current) return;
+
+    const safeStart = () => {
+      if (cleanedUpRef.current || isRunningRef.current) return;
+      try {
+        recognitionRef.current.start();
+        isRunningRef.current = true;
+      } catch (_) { }
+    };
 
     if (!recognitionRef.current) {
       const rec = new SR();
@@ -86,11 +96,16 @@ const ExamInstructions = () => {
           .map((r) => r[0].transcript.trim().toLowerCase())
           .join(" ");
         if (!raw) return;
+
+        console.log("[Voice] heard:", raw); // debug log
         setHeardText(raw);
         setVoiceStatus("heard");
 
         if (/start exam|start|begin exam|begin/i.test(raw)) {
-          speak("Starting your exam now. Good luck!", () => handleStartExam());
+          // ✅ use ref — always has the latest handleStartExam
+          speak("Starting your exam now. Good luck!", () => {
+            handleStartExamRef.current?.();
+          });
         } else if (/repeat|repeat instructions|again|instructions/i.test(raw)) {
           speak(buildWelcomeMessage(exam));
           setTimeout(() => { setVoiceStatus("ready"); setHeardText(""); }, 1500);
@@ -111,11 +126,6 @@ const ExamInstructions = () => {
 
       recognitionRef.current = rec;
     }
-
-    const safeStart = () => {
-      if (cleanedUpRef.current || isRunningRef.current) return;
-      try { recognitionRef.current.start(); isRunningRef.current = true; } catch (_) { }
-    };
 
     safeStart();
   }, [exam, buildWelcomeMessage]); // eslint-disable-line
@@ -156,6 +166,10 @@ const ExamInstructions = () => {
     enterFullscreen();
     navigate(`/exam?id=${examId}`);
   }, [enterFullscreen, navigate, examId]);
+
+  // ✅ keep ref always pointing to the latest handleStartExam
+  // (this is what voice recognition uses to avoid stale closure)
+  handleStartExamRef.current = handleStartExam;
 
   /* ── voice status config ─────────────────────────────────────────────────── */
   const statusCfg = {
