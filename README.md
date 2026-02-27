@@ -341,9 +341,7 @@ Students can control the entire exam by voice:
 
 Built with ❤️ by **Team Alpha7** at Symbiosis Hackathon 2026
 
-| Role | Name |
-|---|---|
-| Full Stack Developer | [@Chandu7a7](https://github.com/Chandu7a7) |
+ 
 
 </div>
 
