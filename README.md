@@ -138,6 +138,17 @@
 
 ---
 
+## Credential
+
+# Student : 
+email:chandu7a7@gmail.com
+password : 123456
+
+# Admin :
+email:admine@gmail.com
+password : 123456
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
