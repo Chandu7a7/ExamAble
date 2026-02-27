@@ -334,7 +334,7 @@ Students can control the entire exam by voice:
 
 | Service | Platform | URL |
 |---|---|---|
-| **Frontend** | Vercel | [examable.vercel.app](https://examable.vercel.app) |
+| **Frontend** | Vercel | [examable.vercel.app](https://examablevite.vercel.app/) |
 | **Backend** | Render | [examable.onrender.com](https://examable.onrender.com) |
 | **Database** | MongoDB Atlas | — |
 | **Images** | Cloudinary CDN | `res.cloudinary.com/...` |
