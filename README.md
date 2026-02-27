@@ -19,7 +19,7 @@
 
 ## 🎥 Project Demo
 
-<video src="demo.mp4" controls width="600"></video>
+[▶️ Click here to watch the demo](./demo.mp4)
 
 
 [![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev)
