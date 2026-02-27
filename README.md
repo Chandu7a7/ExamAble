@@ -20,8 +20,8 @@
 ## 🎥 Project Demo
 
 <p align="center">
-  <a href="https://i.ytimg.com/vi/rLYxjUhDhVU/hqdefault.jpg?sqp=-oaymwFBCNACELwBSFryq4qpAzMIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB8AEB-AG-BoAC0AOKAgwIABABGF0gWChlMA8=&rs=AOn4CLBd9CYzIz-9frEoxZChGvsOnCYWNQ">
-    <img src="https://img.youtube.com/vi/rLYxjUhDhVU/maxresdefault.jpg" width="700"/>
+  <a href="https://youtu.be/rLYxjUhDhVU?si=f9czdrBbZ3zGdwc7">
+    <img src="https://i.ytimg.com/vi/rLYxjUhDhVU/hqdefault.jpg?sqp=-oaymwFBCNACELwBSFryq4qpAzMIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB8AEB-AG-BoAC0AOKAgwIABABGF0gWChlMA8=&rs=AOn4CLBd9CYzIz-9frEoxZChGvsOnCYWNQ" width="700"/>
   </a>
 </p>
 
