@@ -1,6 +1,17 @@
 import API_BASE from "../api.js";
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+
+/* ─── Speech helpers ──────────────────────────────────────────────────────── */
+const speak = (text, onEnd) => {
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.95;
+  utter.pitch = 1;
+  utter.lang = "en-US";
+  if (onEnd) utter.onend = onEnd;
+  window.speechSynthesis.speak(utter);
+};
 
 const ExamInstructions = () => {
   const navigate = useNavigate();
@@ -8,11 +19,17 @@ const ExamInstructions = () => {
   const examId = searchParams.get("id");
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [voiceStatus, setVoiceStatus] = useState("loading"); // loading | ready | speaking | heard
+  const [heardText, setHeardText] = useState("");
 
+  const recognitionRef = useRef(null);
+  const isRunningRef = useRef(false);
+  const cleanedUpRef = useRef(false);
+  const hasSpokeRef = useRef(false); // ensure welcome only fires once
+
+  /* ── exam fetch ─────────────────────────────────────────────────────────── */
   useEffect(() => {
-    if (examId) {
-      fetchExamDetails();
-    }
+    if (examId) fetchExamDetails();
   }, [examId]);
 
   const fetchExamDetails = async () => {
@@ -20,34 +37,134 @@ const ExamInstructions = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE}/api/exams/${examId}`, {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      if (response.ok) {
-        setExam(data);
-      }
-    } catch (error) {
-      console.error("Error fetching exam details:", error);
+      if (response.ok) setExam(data);
+    } catch (err) {
+      console.error("Error fetching exam details:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const enterFullscreen = useCallback(() => {
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen();
-    } else if (elem.webkitRequestFullscreen) {
-      elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) {
-      elem.msRequestFullscreen();
-    }
+  /* ── build welcome message ──────────────────────────────────────────────── */
+  const buildWelcomeMessage = useCallback((examData) => {
+    const title = examData?.title || "General Exam";
+    const duration = examData?.duration || 0;
+    const qCount = examData?.questions?.length || 0;
+    return `Welcome to ${title}. Total time is ${duration} minutes. Total questions are ${qCount}. Press Enter or say Start Exam to begin. Say Repeat Instructions to hear this again.`;
   }, []);
 
-  const handleStartExam = () => {
+  /* ── speak welcome when exam data arrives ───────────────────────────────── */
+  useEffect(() => {
+    if (!exam || loading || hasSpokeRef.current) return;
+    hasSpokeRef.current = true;
+    setVoiceStatus("speaking");
+    speak(buildWelcomeMessage(exam), () => {
+      if (!cleanedUpRef.current) {
+        setVoiceStatus("ready");
+        startRecognition();
+      }
+    });
+  }, [exam, loading]); // eslint-disable-line
+
+  /* ── voice recognition ──────────────────────────────────────────────────── */
+  const startRecognition = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR || cleanedUpRef.current || isRunningRef.current) return;
+
+    if (!recognitionRef.current) {
+      const rec = new SR();
+      rec.lang = "en-US";
+      rec.continuous = true;
+      rec.interimResults = false;
+
+      rec.onresult = (event) => {
+        const raw = Array.from(event.results)
+          .slice(event.resultIndex)
+          .map((r) => r[0].transcript.trim().toLowerCase())
+          .join(" ");
+        if (!raw) return;
+        setHeardText(raw);
+        setVoiceStatus("heard");
+
+        if (/start exam|start|begin exam|begin/i.test(raw)) {
+          speak("Starting your exam now. Good luck!", () => handleStartExam());
+        } else if (/repeat|repeat instructions|again|instructions/i.test(raw)) {
+          speak(buildWelcomeMessage(exam));
+          setTimeout(() => { setVoiceStatus("ready"); setHeardText(""); }, 1500);
+        } else {
+          setTimeout(() => { setVoiceStatus("ready"); setHeardText(""); }, 1500);
+        }
+      };
+
+      rec.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") return;
+        isRunningRef.current = false;
+      };
+
+      rec.onend = () => {
+        isRunningRef.current = false;
+        if (!cleanedUpRef.current) setTimeout(safeStart, 300);
+      };
+
+      recognitionRef.current = rec;
+    }
+
+    const safeStart = () => {
+      if (cleanedUpRef.current || isRunningRef.current) return;
+      try { recognitionRef.current.start(); isRunningRef.current = true; } catch (_) { }
+    };
+
+    safeStart();
+  }, [exam, buildWelcomeMessage]); // eslint-disable-line
+
+  /* ── cleanup ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    return () => {
+      cleanedUpRef.current = true;
+      window.speechSynthesis.cancel();
+      if (recognitionRef.current && isRunningRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) { }
+      }
+    };
+  }, []);
+
+  /* ── keyboard shortcuts ─────────────────────────────────────────────────── */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Enter") handleStartExam();
+      if (e.key === "r" || e.key === "R") {
+        if (exam) speak(buildWelcomeMessage(exam));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [exam, buildWelcomeMessage]); // eslint-disable-line
+
+  /* ── fullscreen + navigation ────────────────────────────────────────────── */
+  const enterFullscreen = useCallback(() => {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+  }, []);
+
+  const handleStartExam = useCallback(() => {
+    window.speechSynthesis.cancel();
     enterFullscreen();
     navigate(`/exam?id=${examId}`);
+  }, [enterFullscreen, navigate, examId]);
+
+  /* ── voice status config ─────────────────────────────────────────────────── */
+  const statusCfg = {
+    loading: { label: "Loading exam details...", icon: "hourglass_top", color: "text-slate-400" },
+    speaking: { label: "Reading instructions aloud...", icon: "volume_up", color: "text-primary" },
+    ready: { label: "Listening — say 'Start Exam'", icon: "mic", color: "text-emerald-500" },
+    heard: { label: `Heard: "${heardText}"`, icon: "check_circle", color: "text-amber-500" },
   };
+  const st = statusCfg[voiceStatus] || statusCfg.loading;
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-body text-slate-900 dark:text-slate-100 min-h-screen flex flex-col selection:bg-primary/30">
@@ -111,17 +228,19 @@ const ExamInstructions = () => {
               </div>
               <div>
                 <h2 className="text-xl font-black text-slate-900 dark:text-white mb-1">Voice Protocol Synced</h2>
-                <p className="text-slate-600 dark:text-slate-400 font-medium">
-                  Status: Optimized for screen reading. Press <kbd className="bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-mono font-black text-primary mx-1">ENTER</kbd> to initiate session.
+                <p className={`font-medium text-sm flex items-center gap-2 ${st.color}`}>
+                  <span className="material-symbols-outlined text-base">{st.icon}</span>
+                  {st.label}
                 </p>
               </div>
             </div>
             <button
+              onClick={() => exam && speak(buildWelcomeMessage(exam))}
               className="h-14 px-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary font-black rounded-xl hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center gap-2 group/btn"
               type="button"
             >
-              AUDIO GUIDE
-              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              REPEAT INSTRUCTIONS
+              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">replay</span>
             </button>
           </div>
         </div>
@@ -191,10 +310,10 @@ const ExamInstructions = () => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {[
-                  { key: "N", label: "Advance" },
+                  { key: "N", label: "Next Question" },
                   { key: "P", label: "Previous" },
-                  { key: "R", label: "Narrate" },
-                  { key: "S", label: "Finalize" }
+                  { key: "M", label: "Review" },
+                  { key: "S", label: "Submit Exam" }
                 ].map((item) => (
                   <div key={item.key} className="flex flex-col items-center gap-4 p-6 border-2 border-slate-100 dark:border-slate-800 rounded-[1.5rem] hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group">
                     <kbd className="flex items-center justify-center w-16 h-16 text-3xl font-black bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-[0_8px_0_0_#475569] dark:shadow-[0_8px_0_0_#94a3b8] group-hover:scale-110 transition-transform">
@@ -225,6 +344,9 @@ const ExamInstructions = () => {
                   START EXAM
                   <span className="material-symbols-outlined text-3xl group-hover:translate-x-2 transition-transform">bolt</span>
                 </button>
+                <p className="mt-4 text-blue-100/70 text-xs font-bold text-center uppercase tracking-widest">
+                  🎤 Say "Start Exam" • Press Enter
+                </p>
                 <div className="mt-8 flex items-center gap-3 text-blue-100 font-bold text-sm">
                   <span className="material-symbols-outlined text-lg">verified_user</span>
                   SECURE ENVIRONMENT
@@ -258,7 +380,7 @@ const ExamInstructions = () => {
 
       <footer className="w-full py-12 px-8 border-t border-white/10 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-slate-400 font-black text-xs tracking-widest uppercase">
-          <p>© 2024 VI-Portal. Universal Academic Equity.</p>
+          <p>© 2026 VI-Portal. Universal Academic Equity.</p>
           <div className="flex gap-10">
             <a className="hover:text-primary transition-colors" href="#">Privacy</a>
             <a className="hover:text-primary transition-colors" href="#">WCAG 2.1</a>
